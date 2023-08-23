@@ -6,9 +6,10 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-//import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 // Import Uniswap Interface
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
@@ -16,6 +17,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 import "@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+
 
 // OpenZeppelin Contracts (last updated v4.9.0) (access/Ownable.sol)
 
@@ -31,87 +33,6 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
  * `onlyOwner`, which can be applied to your functions to restrict their use to
  * the owner.
  */
-abstract contract Ownable is Context {
-    address private _owner;
-
-    /**
-     * @dev The caller account is not authorized to perform an operation.
-     */
-    error OwnableUnauthorizedAccount(address account);
-
-    /**
-     * @dev The owner is not a valid owner account. (eg. `address(0)`)
-     */
-    error OwnableInvalidOwner(address owner);
-
-    event OwnershipTransferred(
-        address indexed previousOwner,
-        address indexed newOwner
-    );
-
-    /**
-     * @dev Initializes the contract setting the address provided by the deployer as the initial owner.
-     */
-    constructor(address initialOwner) {
-        _transferOwnership(initialOwner);
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    modifier onlyOwner() {
-        _checkOwner();
-        _;
-    }
-
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if the sender is not the owner.
-     */
-    function _checkOwner() internal view virtual {
-        if (owner() != _msgSender()) {
-            revert OwnableUnauthorizedAccount(_msgSender());
-        }
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby disabling any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual onlyOwner {
-        _transferOwnership(address(0));
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
-        if (newOwner == address(0)) {
-            revert OwnableInvalidOwner(address(0));
-        }
-        _transferOwnership(newOwner);
-    }
-
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Internal function without access restriction.
-     */
-    function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
-    }
-}
 
 /**
  * @dev Standard ERC20 Errors
@@ -257,22 +178,22 @@ abstract contract TimeLock is Ownable {
 }
 
 /*
-* @title BotFather Token .
+* @title EENYMEENY Token .
 * @author a cool developer
 * @notice This contract is a simple Token with tax and liquidity filling functions. Some Security features are also added
 * @dev -
 */
-contract Token is ERC20, Ownable, TimeLock {
+contract Token is ERC20, Ownable, TimeLock, ReentrancyGuard {
     
     using SafeMath for uint256;
     using Address for address;
 
     // defaults
-    string private _name    = "BotFather";
-    string private _symbol  = "BTFTR";
+    string private _name    = "Test";
+    string private _symbol  = "TEST";
     uint8 private _decimals = 18;
     address public deadAddress = 0x000000000000000000000000000000000000dEaD;
-    uint256 private _totalSupply = 100_000_000_000 ether;
+    uint256 private _totalSupply = 100_000_000_000_000 ether;
 
     // misc
     mapping (address => mapping (address => uint256)) private _allowances;
@@ -331,7 +252,7 @@ contract Token is ERC20, Ownable, TimeLock {
         inSwapAndLiquify = false;
     }
 
-    constructor(address _marketing, address _primaryRouter ) ERC20(_name, _symbol) Ownable(_msgSender()) 
+    constructor(address _marketing, address _primaryRouter ) ERC20(_name, _symbol)
     {
         _mint(msg.sender, _totalSupply);
 
@@ -389,7 +310,8 @@ contract Token is ERC20, Ownable, TimeLock {
     * @param from address , to address, amount of tokens
     * @return none
     */
-    function _transfer(address from, address to, uint256 amount) internal override {
+    function _transfer(address from, address to, uint256 amount) internal nonReentrant override 
+    {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
         require(balanceOf(from) >= amount, "ERC20: transfer amount exceeds balance");
@@ -754,3 +676,4 @@ contract Token is ERC20, Ownable, TimeLock {
         return _totalSupply.sub(nonCirculating);
     }
 }
+
